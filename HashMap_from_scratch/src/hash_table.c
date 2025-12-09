@@ -5,6 +5,7 @@
 #include "hash_table.h"
 #define HT_PRIME_1 151
 #define HT_PRIME_2 163
+static ht_item HT_DELETED_ITEM = {NULL, NULL};
 
 //const char* k means: "A pointer to the beginning of a string representing the key."
 //const char* v means: "A pointer to the beginning of a string representing the value."
@@ -88,4 +89,90 @@ static int ht_get_hash(const char* s , const int num_buckets,const int attempt){
     //the (hash_b + 1) is to avoid getting a zero value for hash_b 
     //and num_buckets modulus to make sure it stays within the bounds of the array
     return (hash_a + (attempt * (hash_b + 1))) % num_buckets;
+}
+
+//insert key value pair into the hash table
+void ht_insert(ht_hash_table* ht,const char* key , const char* value){
+    //makes an new item
+    ht_item* item = ht_new_item(key,value);
+    //generates a hash and checks if prev data is there (collision)
+    int index = ht_get_hash(item->key,ht->size,0);
+    ht_item* cur_item = ht->items[index];
+
+    //this while loop activates only when there is a collision
+    int i=1;
+    while (cur_item != NULL ) {
+        if (cur_item != &HT_DELETED_ITEM) {
+            if (strcmp(cur_item->key, key) == 0) {
+                ht_del_item(cur_item);
+                ht->items[index] = item;
+                return;
+            }
+        }
+        //we jump randomly here and there until we find an emtpy bucket
+        index = ht_get_hash(item->key,ht->size,i);
+        cur_item = ht->items[index];
+        i++;
+    }
+
+    //finally assigning the item to the hash table
+    ht->items[index]=item;
+    ht->count++;
+}
+
+// hash_table.c
+void ht_search(ht_hash_table* ht, const char* key) {
+    int index = ht_get_hash(key, ht->size, 0);
+    ht_item* item = ht->items[index];
+    int i = 1;
+    while (item != NULL) {
+        // Check if the keys match (by jumping around using double hashing)
+        //strcmp | sting compare | compares two strings and returns 0 if they are equal
+        //strcmp--> (-)value if str1 < str2 | 0 if str1 == str2 | (+)value if str1 > str2 ALPHABETICALLY
+        if (item != &HT_DELETED_ITEM) { 
+            if (strcmp(item->key, key) == 0) {
+                // Key found, you can process the item here
+                return item->value ;
+            }
+
+        }
+            index = ht_get_hash(item->key, ht->size, i);
+            item = ht->items[index];
+            i++;
+        
+    } 
+    // Key not found
+    return NULL;
+}
+
+// hash_table.c
+
+
+
+void ht_delete(ht_hash_table* ht, const char* key) {
+    //does the saem key finding loopy thing
+    int index = ht_get_hash(key, ht->size, 0);
+    ht_item* item = ht->items[index];
+    int i = 1;
+    while (item != NULL) {
+
+        //if the item i am checking is not deleted...
+        if (item != &HT_DELETED_ITEM) {
+            //is this IS the key i am looking for ...
+            if (strcmp(item->key, key) == 0) {
+                //delete (free all the memory) for the item 
+                ht_del_item(item);
+                //but the adress in the bucket remains the same , just point it to the special deleted item
+                ht->items[index] = &HT_DELETED_ITEM;
+                ht->count--;
+                return;
+
+            }
+        }
+        index = ht_get_hash(key, ht->size, i);
+        item = ht->items[index];
+        i++;
+    } 
+    //decrement the count too
+
 }
