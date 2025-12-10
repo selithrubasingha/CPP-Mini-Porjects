@@ -10,6 +10,7 @@ typedef struct {
 } ht_item;
 
 typedef struct {
+    int base_size;
     int size;
     int count;
     //pointer to a pointer

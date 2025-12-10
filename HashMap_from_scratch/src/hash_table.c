@@ -5,6 +5,7 @@
 #include "hash_table.h"
 #define HT_PRIME_1 151
 #define HT_PRIME_2 163
+#define HT_INITIAL_BASE_SIZE 53
 static ht_item HT_DELETED_ITEM = {NULL, NULL};
 
 //const char* k means: "A pointer to the beginning of a string representing the key."
@@ -22,18 +23,18 @@ static ht_item* ht_new_item(const char* k, const char* v) {
 }
 
 
-ht_hash_table* ht_new() {
-    //this is the adress , not the actual struct
-    ht_hash_table* ht = malloc(sizeof(ht_hash_table));
+// ht_hash_table* ht_new() {
+//     //this is the adress , not the actual struct
+//     ht_hash_table* ht = malloc(sizeof(ht_hash_table));
 
-    ht->size = 53;
-    ht->count = 0;
-    //size_t is a special type of integer! this tells the coompiler
-    //"Treat the integer value in ht->size as a size_t value for this function call."
-    //53* 4bytes for the adress list of items!
-    ht->items = calloc((size_t)ht->size, sizeof(ht_item*));
-    return ht;
-}
+//     ht->size = 53;
+//     ht->count = 0;
+//     //size_t is a special type of integer! this tells the coompiler
+//     //"Treat the integer value in ht->size as a size_t value for this function call."
+//     //53* 4bytes for the adress list of items!
+//     ht->items = calloc((size_t)ht->size, sizeof(ht_item*));
+//     return ht;
+// }
 
 
 static void ht_del_item(ht_item* i) {
@@ -93,6 +94,11 @@ static int ht_get_hash(const char* s , const int num_buckets,const int attempt){
 
 //insert key value pair into the hash table
 void ht_insert(ht_hash_table* ht,const char* key , const char* value){
+    //the resize logic(came in later)
+    const int load = ht->count * 100 / ht->size;
+    if (load > 70) {
+        ht_resize_up(ht);
+    }
     //makes an new item
     ht_item* item = ht_new_item(key,value);
     //generates a hash and checks if prev data is there (collision)
@@ -150,6 +156,11 @@ void ht_search(ht_hash_table* ht, const char* key) {
 
 
 void ht_delete(ht_hash_table* ht, const char* key) {
+    //the scale down logic
+    const int load = ht->count * 100 / ht->size;
+    if (load < 10) {
+        ht_resize_down(ht);
+    }
     //does the saem key finding loopy thing
     int index = ht_get_hash(key, ht->size, 0);
     ht_item* item = ht->items[index];
@@ -175,4 +186,66 @@ void ht_delete(ht_hash_table* ht, const char* key) {
     } 
     //decrement the count too
 
+}
+
+// hash_table.c
+static ht_hash_table* ht_new_sized(const int base_size) {
+    ht_hash_table* ht = xmalloc(sizeof(ht_hash_table));
+    ht->base_size = base_size;
+
+    ht->base_size = next_prime(ht->base_size);
+
+    ht->count = 0;
+    ht->items = xcalloc((size_t)ht->base_size, sizeof(ht_item*));
+    return ht;
+}
+
+
+ht_hash_table* ht_new() {
+    return ht_new_sized(HT_INITIAL_BASE_SIZE);
+}
+
+//what happeens inside this mehtod? 
+// we create a new has_table new_ht WITH A NEW SIZE, copy everything into it from the prev ht
+//then we new_ht to ht and vice versa , we used the temporary new_ht to remodify the ht with a new size!!
+static void ht_resize(ht_hash_table* ht , int base_size){
+    if (base_size < HT_INITIAL_BASE_SIZE) {
+        return;
+    }
+    ht_hash_table* new_ht = ht_new_sized(base_size);
+    //copying the items to nre_ht
+    for(int i=0;i<ht->size;i++){
+        ht_item* item = ht->items[i];
+        if(item != NULL && item != &HT_DELETED_ITEM){
+            ht_insert(new_ht,item->key,item->value);
+        }
+    //modifying the ht to have the new size and count
+    ht->base_size = new_ht->base_size;
+    ht->size = new_ht->size;
+
+    //tranferring all the items from new_ht to ht
+    const int tmp_size = ht->size;
+    ht->size = new_ht->size;
+    new_ht->size = tmp_size;
+
+    ht_item** tmp_items = ht->items;
+    ht->items = new_ht->items;
+    new_ht->items = tmp_items;  
+
+    //deleting the new_ht because we don't need it anymore
+    ht_del_hash_table(new_ht);
+
+    }
+}
+
+// for simplicity , there are two small mehtods to resize up and down
+static void ht_resize_up(ht_hash_table* ht) {
+    const int new_size = ht->base_size * 2;
+    ht_resize(ht, new_size);
+}
+
+
+static void ht_resize_down(ht_hash_table* ht) {
+    const int new_size = ht->base_size / 2;
+    ht_resize(ht, new_size);
 }
