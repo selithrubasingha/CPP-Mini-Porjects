@@ -1,12 +1,18 @@
 // hash_table.c
 #include <stdlib.h>
 #include <string.h>
-
+#include <math.h>
+#include "prime.h"
 #include "hash_table.h"
 #define HT_PRIME_1 151
 #define HT_PRIME_2 163
 #define HT_INITIAL_BASE_SIZE 53
 static ht_item HT_DELETED_ITEM = {NULL, NULL};
+
+// --- Forward Declarations (FIX 3) ---
+// These tell the compiler "These functions exist, trust me, the code is lower down."
+static void ht_resize_up(ht_hash_table* ht);
+static void ht_resize_down(ht_hash_table* ht);
 
 //const char* k means: "A pointer to the beginning of a string representing the key."
 //const char* v means: "A pointer to the beginning of a string representing the value."
@@ -127,7 +133,7 @@ void ht_insert(ht_hash_table* ht,const char* key , const char* value){
 }
 
 // hash_table.c
-void ht_search(ht_hash_table* ht, const char* key) {
+const char* ht_search(ht_hash_table* ht, const char* key) {
     int index = ht_get_hash(key, ht->size, 0);
     ht_item* item = ht->items[index];
     int i = 1;
@@ -190,13 +196,13 @@ void ht_delete(ht_hash_table* ht, const char* key) {
 
 // hash_table.c
 static ht_hash_table* ht_new_sized(const int base_size) {
-    ht_hash_table* ht = xmalloc(sizeof(ht_hash_table));
+    ht_hash_table* ht = malloc(sizeof(ht_hash_table));
     ht->base_size = base_size;
 
-    ht->base_size = next_prime(ht->base_size);
+    ht->size = next_prime(ht->base_size);
 
     ht->count = 0;
-    ht->items = xcalloc((size_t)ht->base_size, sizeof(ht_item*));
+    ht->items = calloc((size_t)ht->size, sizeof(ht_item*));
     return ht;
 }
 

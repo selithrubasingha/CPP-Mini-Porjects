@@ -1,5 +1,9 @@
 #ifndef HASH_TABLE_H // <-- Header guards are essential!
 #define HASH_TABLE_H
+#include <stddef.h> // Include for size_t, which is good practice
+
+// --- Constants ---
+#define HT_INITIAL_BASE_SIZE 53
 
 //this is not the normal way of defining structs, the typedef word is used
 //so now we won't need to write struct this and struct that when making a specific struct
@@ -22,10 +26,20 @@ typedef struct {
 
 // Inside hash_table.h
 
-// 1. Declaration for creating the hash table
-ht_hash_table* ht_new();
 
-// 2. Declaration for deleting the hash table
+// --- Public Function Declarations ---
+
+// 1. Creation and Deletion
+ht_hash_table* ht_new();
 void ht_del_hash_table(ht_hash_table* ht);
+
+// 2. Core Operations
+void ht_insert(ht_hash_table* ht, const char* key, const char* value);
+// IMPORTANT: Corrected to return const char* as intended in ht_search body
+const char* ht_search(ht_hash_table* ht, const char* key);
+void ht_delete(ht_hash_table* ht, const char* key);
+
+// The resizing helper functions are usually internal (static)
+// and do not need a declaration here, unless you want them accessible externally.
 
 #endif // HASH_TABLE_H
