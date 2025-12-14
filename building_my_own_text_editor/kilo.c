@@ -324,6 +324,11 @@ void editorMoveCursor(int key) {
       if (row && E.cx < row->size) {
         E.cx++;
       }
+      //end of a line ->right -> goes to next line beginning
+      else if (row && E.cx == row->size) {
+        E.cy++;
+        E.cx = 0;
+      }
         break;
     case ARROW_UP:
       if (E.cy != 0) {
