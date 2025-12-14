@@ -331,6 +331,15 @@ void editorMoveCursor(int key) {
       }
       break;
   }
+  //since this row is after inrementing , the row has chagned , 
+  //when we go right and then down .. sometimes the cx exceeds line length 
+  //we fixe this inside here
+  row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+  int rowlen = row ? row->size : 0;
+  if (E.cx > rowlen) {
+    E.cx = rowlen;
+  }
+
 }
 
 void editorProcessKeypress(){
