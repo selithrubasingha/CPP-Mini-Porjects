@@ -355,6 +355,8 @@ void editorScroll()
   }
 }
 
+//this is the function that draws the actual rows line by line from the editor
+
 void editorDrawRows(struct abuf *ab)
 {
   int y;
