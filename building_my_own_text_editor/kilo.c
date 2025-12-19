@@ -1,27 +1,26 @@
-/*** includes ***/
+/*** defines ***/
+#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE
+#define _GNU_SOURCE
 
-#include <sys/ioctl.h>
-#include <stdlib.h>
+/*** includes ***/
+#include <ctype.h>
 #include <errno.h>
-#include <stdarg.h>
-#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
 
-/*** defines ***/
-#define _DEFAULT_SOURCE
-#define _BSD_SOURCE
-#define _GNU_SOURCE
+/*** constants ***/
 #define KILO_TAB_STOP 8
-
+#define KILO_VERSION "0.0.1"
 #define CTRL_KEY(k) ((k) & 0x1f)
 
-#define KILO_VERSION "0.0.1"
 
+//the keys we use in the text editor
 enum editorKey
 {
   ARROW_LEFT = 1000,
@@ -37,6 +36,7 @@ enum editorKey
 
 /*** data ***/
 
+//
 typedef struct erow
 {
   int size;
@@ -54,8 +54,6 @@ struct editorConfig
   int coloff;
   int screenrows;
   int screencols;
-  char statusmsg[80];
-  time_t statusmsg_time;
   struct termios orig_termios;
   int numrows;
   erow *row;
@@ -68,8 +66,9 @@ struct editorConfig E;
 // Print error message and exit
 void die(const char *s)
 {
-
+  //clear the screen
   write(STDOUT_FILENO, "\x1b[2J", 4);
+  //reposition cursor to top-left
   write(STDOUT_FILENO, "\x1b[H", 3);
   perror(s);
   exit(1);
@@ -78,6 +77,9 @@ void die(const char *s)
 // Restore terminal to original settings
 void disableRawMode()
 {
+  //terminal control set attribute --> sets the terminal attrs
+  //STDIN_FILENO --> changes some in the terminal input output (that is the keyboard input)
+  //TCA_FLUSH --> clears the input *buffer* not the terminal ... It prevents "leftover" keypresses from leaking into your terminal after the program quits.
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
     die("tcsetattr");
 }
@@ -115,12 +117,16 @@ int editorReadKey()
 {
   int nread;
   char c;
+  //read the inputted thing in the terminal (the 1 is for ->"store it in with 1 byte")
+  //if DOES NOT press a key then the loop continues !!
   while ((nread = read(STDIN_FILENO, &c, 1) != 1))
+  //some error handling
   {
     if (nread == -1 && errno != EAGAIN)
       die("read");
   }
 
+  //this part is not inside the loop aha!
   if (c == '\x1b')
   {
     char seq[3];
@@ -128,12 +134,15 @@ int editorReadKey()
       return '\x1b';
     if (read(STDIN_FILENO, &seq[1], 1) != 1)
       return '\x1b';
+    //after the \x1b is read then comes the other characters
     if (seq[0] == '[')
     {
+      //boom it reads the key related codes 
       if (seq[1] >= '0' && seq[1] <= '9')
       {
         if (read(STDIN_FILENO, &seq[2], 1) != 1)
           return '\x1b';
+        //these key codes contain a ~
         if (seq[2] == '~')
         {
           switch (seq[1])
@@ -157,6 +166,7 @@ int editorReadKey()
       }
       else
       {
+        // if no numbers and just texts its the up down arrow keys (don't ask me why it just is that way)
         switch (seq[1])
         {
         case 'A':
@@ -196,30 +206,40 @@ int getCursorPosition(int *rows, int *cols)
 {
   char buf[32];
   unsigned int i = 0;
+
+  // Send request to terminal: "Report Cursor Position"
   if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
     return -1;
+
+  // Read the response (looks like ^[[24;80R) into buf
   while (i < sizeof(buf) - 1)
   {
     if (read(STDIN_FILENO, &buf[i], 1) != 1)
       break;
-    if (buf[i] == 'R')
+    if (buf[i] == 'R') // 'R' marks the end of the message
       break;
     i++;
   }
-  buf[i] = '\0';
+  buf[i] = '\0'; // Null-terminate the string
 
+  // Verify the response starts with the correct escape sequence
   if (buf[0] != '\x1b' || buf[1] != '[')
     return -1;
+
+  // Parse the numbers from the string (skipping the first 2 chars)
   if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
     return -1;
+
   return 0;
 }
 
 int getWindowSize(int *rows, int *cols)
 {
   struct winsize ws;
+  //TIOCGWINSZ-> terminal input output get window size
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
   {
+    //large numbers like 999 are added to force the cursor to the bottom-right corner
     if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
       return -1;
     editorReadKey();
@@ -409,56 +429,24 @@ void editorDrawRows(struct abuf *ab)
     }
 
     abAppend(ab, "\x1b[K", 3);
-
-    abAppend(ab, "\r\n", 2);
-
+      abAppend(ab, "\r\n", 2);
     }
   
 }
 
 void editorDrawStatusBar(struct abuf *ab) {
   abAppend(ab, "\x1b[7m", 4);
-  char status[80], rstatus[80];
-  //snprintf --> Safely writes up to n bytes to buffer, returning the length the string *would* have been if it fit.
+  
+  char status[80];
   int len = snprintf(status, sizeof(status), "%.20s - %d lines",
     E.filename ? E.filename : "[No Name]", E.numrows);
-  int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d",
-    E.cy + 1, E.numrows);
   if (len > E.screencols) len = E.screencols;
   abAppend(ab, status, len);
   while (len < E.screencols) {
-    //are we close to the right most screen edge?
-    if (E.screencols - len == rlen) {
-      //if were close enough , append the rstatus
-      abAppend(ab, rstatus, rlen);
-      break;
-    } else {
-      //if not just append spaces
-      abAppend(ab, " ", 1);
-      len++;
-    }
+    abAppend(ab, " ", 1);
+    len++;
   }
   abAppend(ab, "\x1b[m", 3);
-  abAppend(ab, "\r\n", 2);
-}
-
-
-void editorSetStatusMessage(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
-  va_end(ap);
-  E.statusmsg_time = time(NULL);
-}
-
-
-void editorDrawMessageBar(struct abuf *ab) {
-  abAppend(ab, "\x1b[K", 3);
-  int msglen = strlen(E.statusmsg);
-  if (msglen > E.screencols) msglen = E.screencols;
-  // if (msglen && time(NULL) - E.statusmsg_time < 5)
-  if (msglen)
-    abAppend(ab, E.statusmsg, msglen);
 }
 
 void editorRefreshScreen()
@@ -472,7 +460,6 @@ void editorRefreshScreen()
   abAppend(&ab, "\x1b[H", 3);
   editorDrawRows(&ab);
   editorDrawStatusBar(&ab);
-  editorDrawMessageBar(&ab);
 
   char buf[32];
   snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1);
@@ -587,8 +574,6 @@ void initEditor()
   E.numrows = 0;
   E.row = NULL;
   E.filename = NULL;
-  E.statusmsg[0] = '\0';
-  E.statusmsg_time = 0;
   if (getWindowSize(&E.screenrows, &E.screencols) == -1)
     die("getWindowSize");
   E.screenrows -= 2;
@@ -603,12 +588,11 @@ int main(int argc, char *argv[])
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("HELP: Ctrl-Q = quit");
-
-  char c;
+  // char c;
 
   while (1)
   {
+  
     editorRefreshScreen();
     editorProcessKeypress();
   }
