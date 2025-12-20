@@ -247,6 +247,7 @@ int getWindowSize(int *rows, int *cols)
   }
   else
   {
+    //using the data inside the winsize struct --> assign the cols and row variables there values 
     *cols = ws.ws_col;
     *rows = ws.ws_row;
     return 0;
@@ -257,6 +258,7 @@ int getWindowSize(int *rows, int *cols)
 
 // Convert cursor x position to render x position
 int editorRowCxToRx(erow *row, int cx) {
+  //in cx the tabs are \t but we need them to be "    " in rx.actually think of tabs as a grid structure it;s not alway 4 spaces!
   int rx = 0;
   int j;
   for (j = 0; j < cx; j++) {
@@ -272,12 +274,20 @@ int editorRowCxToRx(erow *row, int cx) {
 void editorUpdateRow(erow *row) {
   int tabs = 0;
   int j;
+  //row->size :: "hi\t" means the size is 3 !
   for (j = 0; j < row->size; j++)
+  //calculating the number of tabs
     if (row->chars[j] == '\t') tabs++;
+  
+  //this render is like the actual row that is drawn on the screen
+  //first we free and allocate some memory for it
   free(row->render);
-  row->render = malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);
+  row->render = malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);//+1 for null terminator '\0
+
+  //this is tabs expansion uusing the grid like structure of hitting the tab key
   int idx = 0;
   for (j = 0; j < row->size; j++) {
+    //notice that in both is and else we increment idx... by doing this we will be able to fill the render buffer correctly
     if (row->chars[j] == '\t') {
       row->render[idx++] = ' ';
       while (idx % KILO_TAB_STOP != 0) row->render[idx++] = ' ';
@@ -286,20 +296,29 @@ void editorUpdateRow(erow *row) {
     }
   }
   row->render[idx] = '\0';
+  //idx captured the actual size of the render buffer
   row->rsize = idx;
 }
 
 void editorAppendRow(char *s, size_t len)
-{
+{ 
+
+  //realloc re-allocates memory -> notice we are increasing the number of rows by 1 
+  //there are two arguments -> pointer to the previous memory block and the new size
   E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
   int at = E.numrows;
+  //assigning the data that is to be WRITTEN in the row
   E.row[at].size = len;
   E.row[at].chars = malloc(len + 1);
+  //copying the string of line from s adress and copying with memcpy
   memcpy(E.row[at].chars, s, len);
-  E.row[at].chars[len] = '\0';
+  E.row[at].chars[len] = '\0';//don't forget the null terminator!
 
+
+  //resetting the render buffer
   E.row[at].rsize = 0;
   E.row[at].render = NULL;
+  //after the reset t=we use the row , clean it , and reuse it to display the next row.
   editorUpdateRow(&E.row[at]);
 
   E.numrows++;
