@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 /*** constants ***/
 #define KILO_TAB_STOP 8
@@ -65,6 +66,16 @@ struct editorConfig
   char* filename;
 };
 struct editorConfig E;
+struct abuf
+{
+  char *b;   // A pointer to the actual data in memory
+  int len;   // The current length of the string stored in 'b'
+};
+
+
+/***function prototypes***/
+char *editorRowsToString(int *buflen);
+void editorDrawMessageBar(struct abuf *ab);
 
 /*** terminal ***/
 
@@ -394,13 +405,31 @@ void editorOpen(char *filename)
   fclose(fp);
 }
 
+void editorSave(){
+  // If we don't have a filename yet (e.g. new file), we can't save!
+  if (E.filename == NULL) return;
+  
+  int len;
+
+  //get the pointer to the super long string of data
+  char *buf = editorRowsToString(&len);
+
+  // O_RDWR | O_CREAT-> "I want the file to be Read/Write AND I want it to be created if it doesn't exist."
+  int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+
+  //if the original file is 100line and i deleted 50 lines ... to clean the other 50 we use truncate
+  ftruncate(fd , len);
+
+  //this is where the magic happens
+  write(fd , buf ,len);
+
+  //close the fd int and free the buf
+  close(fd);
+  free(buf);
+}
 /*** append buffer ***/
 
-struct abuf
-{
-  char *b;   // A pointer to the actual data in memory
-  int len;   // The current length of the string stored in 'b'
-};
+
 
 #define ABUF_INIT {NULL, 0}
 
@@ -666,7 +695,9 @@ void editorProcessKeypress()
   case DEL_KEY:
     /* TODO */
     break;
-
+  case CTRL_KEY('s'):
+    editorSave();
+    break;
   case PAGE_UP:
   case PAGE_DOWN:
   {
@@ -689,6 +720,34 @@ void editorProcessKeypress()
     editorInsertChar(c);
     break;
   }
+}
+
+char *editorRowsToString(int *buflen){
+  //this creates a super large string of the file !
+
+  //first we need to allocate memory to store the new saved string ...
+  //for that we  first caculate the totlength
+  int totlen = 0;
+  for (int j =0 ;j<E.numrows;j++){
+    totlen+= E.row[j].size +1;
+
+  }
+  *buflen = totlen;
+
+  char *buf = malloc(totlen);
+  char *p =buf;
+
+  //now we do the memcyping line by line
+  for (int j=0;j<E.numrows;j++){
+    memcpy(p, E.row[j].chars, E.row[j].size);
+    p += E.row[j].size;
+    *p = '\n';
+    p++;
+
+  }
+
+  return buf;
+
 }
 /*** init ***/
 
