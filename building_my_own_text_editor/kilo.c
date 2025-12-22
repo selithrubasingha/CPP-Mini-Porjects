@@ -329,6 +329,7 @@ void editorAppendRow(char *s, size_t len)
 }
 
 void editorRowInsertChar(erow *row , int at , int c ){
+  //this function does not have to worry about where the cursor is 
 
   //if the index is incorrect we default to end of the line
   if (at<0 || at>row->size) at = row->size;
@@ -336,13 +337,30 @@ void editorRowInsertChar(erow *row , int at , int c ){
   row->chars = realloc(row->chars,row->size+2);//+2 one for the new character added and other for the null terminator?
 
   //memove is used for shifting the whole line to the right . memmove is more memory safe than memcpy
-  memmove(row->chars[at+1],row->chars[at],row->size-at+1);//we only shift the chars to the right
+  memmove(&row->chars[at+1],&row->chars[at],row->size-at+1);//we only shift the chars to the right
   
   row->size++;
   row->chars[at] = c ;
 
   editorUpdateRow(row);
 
+
+}
+
+
+/*** editor operations ***/
+
+void editorInsertChar(int c ){
+//this function does not have to worry about dealing with modifying the Erow.
+//this is what is called encapsulation baby!
+
+  //typing on a brand new, empty line at the end of the file.
+  if (E.cy == E.numrows) editorAppendRow("",0);
+
+  //normal method calling
+  editorRowInsertChar(&E.row[E.cy],E.cx,c);
+  //since we add one character cx should be incrememnted . 
+  E.cx++;
 
 }
 /*** file i/o ***/
@@ -652,6 +670,9 @@ void editorProcessKeypress()
   case ARROW_LEFT:
   case ARROW_RIGHT:
     editorMoveCursor(c);
+    break;
+  default:
+    editorInsertChar(c);
     break;
   }
 }
