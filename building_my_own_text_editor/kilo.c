@@ -364,6 +364,13 @@ void editorRowInsertChar(erow *row , int at , int c ){
 
 }
 
+void editorRowDelChar(erow *row, int at) {
+  if (at < 0 || at >= row->size) return;
+  memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
+  row->size--;
+  editorUpdateRow(row);
+  E.dirty++;
+}
 
 /*** editor operations ***/
 
@@ -379,6 +386,16 @@ void editorInsertChar(int c ){
   //since we add one character cx should be incrememnted . 
   E.cx++;
 
+}
+
+void editorDelChar() {
+  //most of it is like the insert char method
+  if (E.cy == E.numrows) return;
+  erow *row = &E.row[E.cy];
+  if (E.cx > 0) {
+    editorRowDelChar(row, E.cx - 1);
+    E.cx--;
+  }
 }
 /*** file i/o ***/
 void editorOpen(char *filename)
@@ -716,7 +733,9 @@ void editorProcessKeypress()
   case BACKSPACE:
   case CTRL_KEY('h')://xtrl h is for backspace command
   case DEL_KEY:
-    /* TODO */
+  //you first gotta move the cursor to the right before deleting
+      if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+      editorDelChar();
     break;
   case CTRL_KEY('s'):
     editorSave();
