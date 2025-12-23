@@ -372,6 +372,31 @@ void editorRowDelChar(erow *row, int at) {
   E.dirty++;
 }
 
+
+void editorFreeRow(erow *row) {
+  //freeing the memory for render and chars arrays
+  free(row->render);
+  free(row->chars);
+}
+
+void editorDelRow(int at) {
+  if (at < 0 || at >= E.numrows) return;
+  editorFreeRow(&E.row[at]);
+  //this is the same as del char 
+  //BUT THERE IS A CHANGE ! notice we shift the whole set of rows one up!!!!
+  memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - at - 1));
+  E.numrows--;
+  E.dirty++;
+  }
+
+void editorRowAppendString(erow *row , char *s , size_t len){
+  row->chars = realloc(row->chars,row->size+len+1);
+  memcpy(&row->chars[row->size],s,len);
+  row->size += len;
+  row->chars[row->size] = '\0';
+  editorUpdateRow(row);
+  E.dirty++;
+}
 /*** editor operations ***/
 
 void editorInsertChar(int c ){
@@ -391,10 +416,22 @@ void editorInsertChar(int c ){
 void editorDelChar() {
   //most of it is like the insert char method
   if (E.cy == E.numrows) return;
+  if (E.cx == 0 && E.cy == 0) return;
+
   erow *row = &E.row[E.cy];
   if (E.cx > 0) {
     editorRowDelChar(row, E.cx - 1);
     E.cx--;
+  }else{
+    //when you backspace at the beginning of a line ... the cursor 
+    //should go the last text of the previous line !!
+    E.cx = E.row[E.cy].size;
+    //afterwards the string in the backspaced line ... yea that line goes to the previous line!
+    //line1->hello line2->world ->hit backspace line 1 -> hello world
+    editorRowAppendString(&E.row[E.cy - 1], row->chars, row->size);
+    editorDelRow(E.cy);
+    E.cy--;
+
   }
 }
 /*** file i/o ***/

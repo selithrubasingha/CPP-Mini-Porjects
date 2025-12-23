@@ -1,13 +1,11 @@
 
 Hello, world this is selith 
-This is a standard line of text.but is it though? i mwan can you even trust this text?
-123456
+This is a standard line of text.but is it though? i mwan can you even trust this text?123456
    This line starts with spaces.
 
-The line below is intentionally very long to test your horizontal truncation logic:
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+The line below is intentionally very long to test your horizontal truncation logic:Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-
+I love pancakes... mmmmmm pan cakes!
 Short line.
 Another short line.
 End of file.
