@@ -319,13 +319,15 @@ void editorUpdateRow(erow *row) {
   row->rsize = idx;
 }
 
-void editorAppendRow(char *s, size_t len)
+void editorInsertRow(int at, char *s, size_t len)
 { 
-
+  if (at<0 || at>E.numrows ) return;
   //realloc re-allocates memory -> notice we are increasing the number of rows by 1 
   //there are two arguments -> pointer to the previous memory block and the new size
   E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
-  int at = E.numrows;
+  //if we insert a row in the middle you gotta shift the rest of the rows
+  memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
+
   //assigning the data that is to be WRITTEN in the row
   E.row[at].size = len;
   E.row[at].chars = malloc(len + 1);
@@ -404,7 +406,7 @@ void editorInsertChar(int c ){
 //this is what is called encapsulation baby!
 
   //typing on a brand new, empty line at the end of the file.
-  if (E.cy == E.numrows) editorAppendRow("",0);
+  if (E.cy == E.numrows)     editorInsertRow(E.numrows, "", 0);
 
   //normal method calling
   editorRowInsertChar(&E.row[E.cy],E.cx,c);
@@ -457,7 +459,7 @@ void editorOpen(char *filename)
 
 
   //now we append the line to the editor rows
-    editorAppendRow(line, linelen);
+    editorInsertRow(E.numrows, line, linelen);
   }
   //freeing the memory and closing the file
   free(line);
