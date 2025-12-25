@@ -882,7 +882,7 @@ void editorProcessKeypress()
     if (E.cy < E.numrows)
       E.cx = E.row[E.cy].size;
     break;
-    
+
     case CTRL_KEY('f'):
       editorFind();
       break;
@@ -979,8 +979,8 @@ int main(int argc, char *argv[])
     editorOpen(argv[1]); //this argv[1] containes the file name! we give it in the terminal
   }
 
-  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
-
+  editorSetStatusMessage(
+    "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
   // char c;
 
   while (1)
