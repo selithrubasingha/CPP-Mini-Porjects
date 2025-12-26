@@ -750,20 +750,28 @@ void editorDrawRows(struct abuf *ab)
 
      //an 8 bit datatype 0-255
      unsigned char *hl = &E.row[filerow].hl[E.coloff];
+     int current_color = -1 ;
      int j ;
 
      //we check for digits ... the digits need to be colored!!
      //in each line we should add har by char
      for (j=0;j<len;j++){
       if (hl[j] == HL_NORMAL){
+        if (current_color !=-1){
         abAppend(ab, "\x1b[39m", 5);
+        current_color = -1 ;
+      }
         abAppend(ab, &c[j], 1);
 
       }else {
         int color = editorSyntaxToColor(hl[j]);
+        if (color != current_color) {
+          current_color = color;
         char buf[16];
         int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
         abAppend(ab, buf, clen);
+      
+      }
         abAppend(ab, &c[j], 1);
 
       }
