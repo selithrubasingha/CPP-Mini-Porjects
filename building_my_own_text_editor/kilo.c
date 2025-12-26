@@ -41,7 +41,8 @@ enum editorKey
 
 enum editorHighlight {
   HL_NORMAL = 0,
-  HL_NUMBER
+  HL_NUMBER,
+  HL_MATCH
 };
 /*** data ***/
 
@@ -298,7 +299,9 @@ void editorUpdateSyntax(erow *row){//we color the syntax row by row || line by l
 int editorSyntaxToColor(int hl) {
   switch (hl) {
     case HL_NUMBER: return 31;
+    case HL_MATCH: return 34;
     default: return 37;
+     
   }
 }
 
@@ -574,7 +577,7 @@ void editorSave(){
 }
 
 
-void editorFindCallback(char *query, int key) {
+  void editorFindCallback(char *query, int key) {
   static int last_match = -1;
   static int direction = 1;
 
@@ -616,6 +619,9 @@ void editorFindCallback(char *query, int key) {
 
       //this is wierd ... we set the rowoffset waaay down , and after , the scroll refresh fixes everything??
       E.rowoff = E.numrows;
+
+      //syntax highlighting
+      memset(&row->hl[match - row->render], HL_MATCH, strlen(query));
       break; 
     }
   }
