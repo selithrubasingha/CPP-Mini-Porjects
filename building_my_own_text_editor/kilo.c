@@ -967,7 +967,7 @@ void editorDrawRows(struct abuf *ab)
         //a buffer to store the welcome string 
         char welcome[80];
         int welcomelen = snprintf(welcome, sizeof(welcome),
-                                  "Kilo editor -- version %s", KILO_VERSION);
+                                  "Super Cool CLI Text Editor -- version %s", KILO_VERSION);
         if (welcomelen > E.screencols)
           welcomelen = E.screencols;
 
