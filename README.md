@@ -1,4 +1,4 @@
-# C/C++ Mini Projects
+# C/C++ Projects
 
 Welcome to my collection of C and C++ projects. This repository documents my journey in understanding low-level computing by building core tools and data structures from scratch.
 
