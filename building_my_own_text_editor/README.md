@@ -39,7 +39,40 @@ Building a text editor is one of the most effective ways to master the C languag
 
 ## 🛠️ How to Build & Run
 
-To compile the editor, navigate to the directory and run:
 
+### Linux (Ubuntu/Debian) & macOS
+You can compile using `make` or manually with `gcc`.
+
+**Option 1: Using Make:**
 ```bash
-gcc kilo.c -o kilo -Wall -Wextra -pedantic -std=c99
+make 
+```
+
+**Option 2: Manual Compilation**
+
+```Bash
+
+gcc kilo.c -o kilo -Wall -Wextra -std=gnu99
+```
+**Run the editor:**
+
+```Bash
+
+./kilo [filename]
+```
+
+### Windows Users ⚠️
+
+This project uses POSIX-specific libraries (<termios.h>) for terminal control, which are __not available natively on Windows.__
+
+To run this on Windows, you must use WSL (Windows Subsystem for Linux):
+
+1. Open your WSL terminal (e.g., "Ubuntu on Windows").
+
+2. Navigate to the project folder.
+
+3. Run the make or gcc commands listed above.
+
+__Technical Note:__
+
+This editor relies on the POSIX standard for raw mode terminal control. It will not compile with MinGW or native Windows compilers because they lack the termios struct required for low-level TTY manipulation.
