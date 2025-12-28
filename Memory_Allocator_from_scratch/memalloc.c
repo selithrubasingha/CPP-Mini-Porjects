@@ -1,6 +1,10 @@
 #include <unistd.h>  // Required for sbrk
 #include <stddef.h>  // Required for size_t (or use <stdlib.h>)
 
+struct header_t {
+    size_t size;
+    unsigned is_free;
+};
 void *malloc(size_t size){
     void* block;
 
