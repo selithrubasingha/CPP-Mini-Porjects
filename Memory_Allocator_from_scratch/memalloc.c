@@ -88,6 +88,11 @@ void free(void* block){
     if (!block) return ; 
 
     pthread_mutex_lock(&global_malloc_lock);
+    /*
+    we are given the block pointer ... but t=we need the header pointer 
+    which actually 1 memory adress minus the block (16 bytes minus the block actually)
+    when we do -1 ... the compiler sees the header_t type and automatically substracts the size of 1 header_t 
+    */
     header = (header_t*)block -1;
 
     programbreak = sbrk(0);
