@@ -169,10 +169,18 @@ void *realloc(void *block , size_t size){
 
     header = (header_t*) block -1 ;
 
+    /*
+    if the reallocated size is smaller than the current size there is not actually anything to do 
+    i mean the current size could fit a smaller size...
+    */
     if (header->s.size >= size) return block;
 
     ret = malloc(size);
 
+    /*
+    if the size is bigger , then we should malloc a new area in the heap 
+    and cpy all the from the old block to the new area
+    */
     if (ret){
 
         memcpy(ret , block , header->s.size);
